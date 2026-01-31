@@ -7,7 +7,8 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -345,6 +346,20 @@
             margin-top: 10px;
         }
         
+        /* Leaflet map styling */
+        .leaflet-container {
+            background: var(--carbon-dark);
+        }
+        
+        .leaflet-control-attribution {
+            background: rgba(20, 20, 20, 0.8) !important;
+            color: var(--off-white) !important;
+        }
+        
+        .leaflet-control-attribution a {
+            color: var(--racing-yellow) !important;
+        }
+        
         .lap-times-section {
             margin-bottom: 20px;
         }
@@ -474,7 +489,8 @@
             
             const portRef = useRef(null);
             const readerRef = useRef(null);
-            const mapInitialized = useRef(false);
+            const mapRef = useRef(null);
+            const polylineRef = useRef(null);
 
             // Web Serial connection
             const connectToESP32 = async () => {
@@ -575,7 +591,7 @@
                 setConnected(false);
             };
 
-            // Update position map
+            // Initialize and update position map
             useEffect(() => {
                 if (positionData.length > 0) {
                     updateMap();
@@ -585,59 +601,48 @@
             const updateMap = () => {
                 if (positionData.length === 0) return;
 
-                const lats = positionData.map(p => p.lat);
-                const lons = positionData.map(p => p.lon);
-
-                const trace = {
-                    type: 'scattermapbox',
-                    lat: lats,
-                    lon: lons,
-                    mode: 'lines+markers',
-                    marker: { 
-                        size: 8, 
-                        color: '#E10600',
-                        symbol: 'circle'
-                    },
-                    line: {
+                // Initialize map only once
+                if (!mapRef.current) {
+                    const firstPoint = positionData[0];
+                    const map = L.map('positionMap').setView([firstPoint.lat, firstPoint.lon], 16);
+                    
+                    // Add OpenStreetMap tiles
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors',
+                        maxZoom: 19
+                    }).addTo(map);
+                    
+                    mapRef.current = map;
+                    
+                    // Create initial polyline
+                    const coordinates = positionData.map(p => [p.lat, p.lon]);
+                    const polyline = L.polyline(coordinates, {
                         color: '#00FF41',
-                        width: 3
-                    },
-                    hovertemplate: 'Lat: %{lat}<br>Lon: %{lon}<extra></extra>'
-                };
-
-                const config = {
-                    mapboxAccessToken: 'pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A',
-                    displayModeBar: false
-                };
-
-                // Only initialize the map once
-                if (!mapInitialized.current) {
-                    const layout = {
-                        mapbox: {
-                            style: 'dark',
-                            center: { lat: lats[0], lon: lons[0] },
-                            zoom: 16
-                        },
-                        showlegend: false,
-                        margin: { t: 0, b: 0, l: 0, r: 0 },
-                        paper_bgcolor: '#0A0A0A',
-                        plot_bgcolor: '#0A0A0A',
-                        uirevision: 'constant' // Preserve UI state
-                    };
-                    Plotly.newPlot('positionMap', [trace], layout, config);
-                    mapInitialized.current = true;
+                        weight: 3,
+                        opacity: 0.8
+                    }).addTo(map);
+                    
+                    polylineRef.current = polyline;
+                    
+                    // Add marker for current position
+                    const currentMarker = L.circleMarker([firstPoint.lat, firstPoint.lon], {
+                        radius: 6,
+                        fillColor: '#E10600',
+                        color: '#FFD700',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.9
+                    }).addTo(map);
+                    
+                    polylineRef.currentMarker = currentMarker;
                 } else {
-                    // Update existing map without changing view
-                    Plotly.react('positionMap', [trace], {
-                        mapbox: {
-                            style: 'dark'
-                        },
-                        showlegend: false,
-                        margin: { t: 0, b: 0, l: 0, r: 0 },
-                        paper_bgcolor: '#0A0A0A',
-                        plot_bgcolor: '#0A0A0A',
-                        uirevision: 'constant' // Preserve UI state (zoom/pan)
-                    }, config);
+                    // Update existing polyline with new coordinates
+                    const coordinates = positionData.map(p => [p.lat, p.lon]);
+                    polylineRef.current.setLatLngs(coordinates);
+                    
+                    // Update current position marker
+                    const lastPoint = positionData[positionData.length - 1];
+                    polylineRef.currentMarker.setLatLng([lastPoint.lat, lastPoint.lon]);
                 }
             };
 
