@@ -262,6 +262,40 @@
             height: 1px;
         }
         
+        .acceleration-label {
+            position: absolute;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--racing-yellow);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .acceleration-label.forward {
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .acceleration-label.back {
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .acceleration-label.left {
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .acceleration-label.right {
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
         .acceleration-dot {
             position: absolute;
             width: 30px;
@@ -526,11 +560,17 @@
 
             // Disconnect
             const disconnect = async () => {
-                if (readerRef.current) {
-                    await readerRef.current.cancel();
-                }
-                if (portRef.current) {
-                    await portRef.current.close();
+                try {
+                    if (readerRef.current) {
+                        await readerRef.current.cancel();
+                        readerRef.current = null;
+                    }
+                    if (portRef.current) {
+                        await portRef.current.close();
+                        portRef.current = null;
+                    }
+                } catch (error) {
+                    console.error('Error during disconnect:', error);
                 }
                 setConnected(false);
             };
@@ -565,24 +605,40 @@
                     hovertemplate: 'Lat: %{lat}<br>Lon: %{lon}<extra></extra>'
                 };
 
-                const layout = {
-                    mapbox: {
-                        style: 'dark',
-                        center: { lat: lats[lats.length - 1], lon: lons[lons.length - 1] },
-                        zoom: 15
-                    },
-                    showlegend: false,
-                    margin: { t: 0, b: 0, l: 0, r: 0 },
-                    paper_bgcolor: '#0A0A0A',
-                    plot_bgcolor: '#0A0A0A'
-                };
-
                 const config = {
                     mapboxAccessToken: 'pk.eyJ1IjoicGxvdGx5bWFwYm94IiwiYSI6ImNrOWJqb2F4djBnMjEzbG50amg0dnJieG4ifQ.Zme1-Uzoi75IaFbieBDl3A',
                     displayModeBar: false
                 };
 
-                Plotly.newPlot('positionMap', [trace], layout, config);
+                // Only initialize the map once
+                if (!mapInitialized.current) {
+                    const layout = {
+                        mapbox: {
+                            style: 'dark',
+                            center: { lat: lats[0], lon: lons[0] },
+                            zoom: 16
+                        },
+                        showlegend: false,
+                        margin: { t: 0, b: 0, l: 0, r: 0 },
+                        paper_bgcolor: '#0A0A0A',
+                        plot_bgcolor: '#0A0A0A',
+                        uirevision: 'constant' // Preserve UI state
+                    };
+                    Plotly.newPlot('positionMap', [trace], layout, config);
+                    mapInitialized.current = true;
+                } else {
+                    // Update existing map without changing view
+                    Plotly.react('positionMap', [trace], {
+                        mapbox: {
+                            style: 'dark'
+                        },
+                        showlegend: false,
+                        margin: { t: 0, b: 0, l: 0, r: 0 },
+                        paper_bgcolor: '#0A0A0A',
+                        plot_bgcolor: '#0A0A0A',
+                        uirevision: 'constant' // Preserve UI state (zoom/pan)
+                    }, config);
+                }
             };
 
             // Calculate fastest lap
@@ -682,6 +738,10 @@
             return (
                 <div className="acceleration-container">
                     <div className="acceleration-grid"></div>
+                    <div className="acceleration-label forward">Forward</div>
+                    <div className="acceleration-label back">Back</div>
+                    <div className="acceleration-label left">Left</div>
+                    <div className="acceleration-label right">Right</div>
                     <div 
                         className="acceleration-dot"
                         style={{
