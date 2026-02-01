@@ -242,6 +242,27 @@
             grid-template-rows: repeat(10, 1fr);
         }
         
+        .acceleration-grid-line {
+            position: absolute;
+            background: rgba(255, 215, 0, 0.15);
+        }
+        
+        .acceleration-grid-line.vertical {
+            width: 1px;
+            height: 100%;
+            top: 0;
+        }
+        
+        .acceleration-grid-line.horizontal {
+            height: 1px;
+            width: 100%;
+            left: 0;
+        }
+        
+        .acceleration-grid-line.center {
+            background: rgba(255, 215, 0, 0.3);
+        }
+        
         .acceleration-grid::before,
         .acceleration-grid::after {
             content: '';
@@ -295,6 +316,32 @@
             right: 10px;
             top: 50%;
             transform: translateY(-50%);
+        }
+        
+        .acceleration-value-label {
+            position: absolute;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: rgba(255, 215, 0, 0.6);
+        }
+        
+        .max-speed-indicator {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--neon-blue);
+            text-align: center;
+            margin-top: 15px;
+            letter-spacing: 1px;
+        }
+        
+        .max-speed-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--racing-yellow);
+            margin-left: 8px;
         }
         
         .acceleration-dot {
@@ -482,8 +529,10 @@
 
         function OpenRCCrewChief() {
             const [connected, setConnected] = useState(false);
+            const [disconnecting, setDisconnecting] = useState(false);
             const [acceleration, setAcceleration] = useState({ x: 0, y: 0 });
             const [speed, setSpeed] = useState(0);
+            const [maxSpeed, setMaxSpeed] = useState(0);
             const [laps, setLaps] = useState([]);
             const [positionData, setPositionData] = useState([]);
             
@@ -493,7 +542,7 @@
             const polylineRef = useRef(null);
 
             // Web Serial connection
-            const connectToESP32 = async () => {
+            const connectToRadio = async () => {
                 try {
                     // Request a port and open a connection
                     const port = await navigator.serial.requestPort();
@@ -505,8 +554,8 @@
                     // Start reading data
                     readSerialData(port);
                 } catch (error) {
-                    console.error('Error connecting to ESP32:', error);
-                    alert('Failed to connect to ESP32. Make sure your browser supports Web Serial API.');
+                    console.error('Error connecting to Radio:', error);
+                    alert('Failed to connect to Radio. Make sure your browser supports Web Serial API.');
                 }
             };
 
@@ -535,9 +584,8 @@
                     }
                 } catch (error) {
                     console.error('Error reading serial data:', error);
-                } finally {
-                    reader.releaseLock();
                 }
+                // Don't call releaseLock here - let disconnect handle it
             };
 
             // Parse incoming serial data
@@ -556,6 +604,7 @@
                     } else if (data.startsWith('SPEED:')) {
                         const speedValue = parseFloat(data.substring(6));
                         setSpeed(speedValue);
+                        setMaxSpeed(prev => Math.max(prev, speedValue));
                     } else if (data.startsWith('LAP:')) {
                         const lapTime = parseFloat(data.substring(4));
                         setLaps(prev => [...prev, { 
@@ -576,19 +625,40 @@
 
             // Disconnect
             const disconnect = async () => {
+                setDisconnecting(true);
                 try {
+                    // First, cancel and release the reader
                     if (readerRef.current) {
-                        await readerRef.current.cancel();
+                        try {
+                            await readerRef.current.cancel();
+                            readerRef.current.releaseLock();
+                        } catch (e) {
+                            console.log('Reader cancel error (this is often normal):', e);
+                        }
                         readerRef.current = null;
                     }
+                    
+                    // Small delay to ensure stream is fully released
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    // Then close the port
                     if (portRef.current) {
-                        await portRef.current.close();
+                        try {
+                            await portRef.current.close();
+                        } catch (e) {
+                            console.error('Port close error:', e);
+                        }
                         portRef.current = null;
                     }
+                    
+                    console.log('Disconnected successfully');
                 } catch (error) {
                     console.error('Error during disconnect:', error);
+                } finally {
+                    // Always set connected to false, even if there was an error
+                    setConnected(false);
+                    setDisconnecting(false);
                 }
-                setConnected(false);
             };
 
             // Initialize and update position map
@@ -657,10 +727,10 @@
                         <h1>Open RC Crew Chief</h1>
                         <button 
                             className="connect-button"
-                            onClick={connected ? disconnect : connectToESP32}
-                            disabled={!('serial' in navigator)}
+                            onClick={connected ? disconnect : connectToRadio}
+                            disabled={!('serial' in navigator) || disconnecting}
                         >
-                            {connected ? 'Disconnect' : 'Connect ESP32'}
+                            {disconnecting ? 'Disconnecting...' : (connected ? 'Disconnect' : 'Connect Radio')}
                             <span className={`status-indicator ${connected ? 'connected' : 'disconnected'}`}></span>
                         </button>
                     </header>
@@ -680,6 +750,9 @@
                                     {speed.toFixed(1)}
                                 </div>
                                 <div className="speed-unit">MPH</div>
+                                <div className="max-speed-indicator">
+                                    MAX: <span className="max-speed-value">{maxSpeed.toFixed(1)}</span> MPH
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -740,9 +813,48 @@
             const dotLeft = 50 + (x * 40); // Center at 50%, scale by 40%
             const dotTop = 50 - (y * 40);  // Invert y for screen coordinates
 
+            // Generate grid lines at 25%, 50%, 75%
+            const gridPositions = [25, 50, 75];
+            const gridValues = [-0.5, 0, 0.5]; // G-force values
+
             return (
                 <div className="acceleration-container">
-                    <div className="acceleration-grid"></div>
+                    <div className="acceleration-grid">
+                        {/* Vertical grid lines */}
+                        {gridPositions.map((pos, idx) => (
+                            <div 
+                                key={`v-${pos}`}
+                                className={`acceleration-grid-line vertical ${pos === 50 ? 'center' : ''}`}
+                                style={{ left: `${pos}%` }}
+                            />
+                        ))}
+                        {/* Horizontal grid lines */}
+                        {gridPositions.map((pos, idx) => (
+                            <div 
+                                key={`h-${pos}`}
+                                className={`acceleration-grid-line horizontal ${pos === 50 ? 'center' : ''}`}
+                                style={{ top: `${pos}%` }}
+                            />
+                        ))}
+                        
+                        {/* Value labels on axes */}
+                        {/* Top values (forward) */}
+                        <div className="acceleration-value-label" style={{ left: '25%', top: '5px', transform: 'translateX(-50%)' }}>0.5g</div>
+                        <div className="acceleration-value-label" style={{ left: '75%', top: '5px', transform: 'translateX(-50%)' }}>-0.5g</div>
+                        
+                        {/* Bottom values (back) */}
+                        <div className="acceleration-value-label" style={{ left: '25%', bottom: '5px', transform: 'translateX(-50%)' }}>-0.5g</div>
+                        <div className="acceleration-value-label" style={{ left: '75%', bottom: '5px', transform: 'translateX(-50%)' }}>0.5g</div>
+                        
+                        {/* Left values */}
+                        <div className="acceleration-value-label" style={{ left: '5px', top: '25%', transform: 'translateY(-50%)' }}>0.5g</div>
+                        <div className="acceleration-value-label" style={{ left: '5px', top: '75%', transform: 'translateY(-50%)' }}>-0.5g</div>
+                        
+                        {/* Right values */}
+                        <div className="acceleration-value-label" style={{ right: '5px', top: '25%', transform: 'translateY(-50%)' }}>-0.5g</div>
+                        <div className="acceleration-value-label" style={{ right: '5px', top: '75%', transform: 'translateY(-50%)' }}>0.5g</div>
+                    </div>
+                    
                     <div className="acceleration-label forward">Forward</div>
                     <div className="acceleration-label back">Back</div>
                     <div className="acceleration-label left">Left</div>
