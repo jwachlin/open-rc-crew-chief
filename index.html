@@ -344,6 +344,46 @@
             margin-left: 8px;
         }
         
+        .temperature-indicators {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .temp-indicator {
+            background: linear-gradient(135deg, var(--carbon-dark) 0%, var(--steel-gray) 100%);
+            padding: 12px 15px;
+            border-left: 3px solid var(--neon-blue);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .temp-label {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--racing-yellow);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .temp-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            line-height: 1;
+        }
+        
+        .temp-conversion {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--neon-blue);
+        }
+        
         .acceleration-dot {
             position: absolute;
             width: 30px;
@@ -533,6 +573,8 @@
             const [acceleration, setAcceleration] = useState({ x: 0, y: 0 });
             const [speed, setSpeed] = useState(0);
             const [maxSpeed, setMaxSpeed] = useState(0);
+            const [temp1, setTemp1] = useState(0);
+            const [temp2, setTemp2] = useState(0);
             const [laps, setLaps] = useState([]);
             const [positionData, setPositionData] = useState([]);
             
@@ -594,6 +636,8 @@
             // SPEED:value (e.g., "SPEED:45.2")
             // LAP:time (e.g., "LAP:62.345")
             // POS:lat,lon (e.g., "POS:37.7749,-122.4194")
+            // TEMP1:value (e.g., "TEMP1:85.5")
+            // TEMP2:value (e.g., "TEMP2:92.3")
             const parseSerialData = (data) => {
                 try {
                     if (data.startsWith('ACC:')) {
@@ -617,6 +661,12 @@
                         const lat = parseFloat(values[0]);
                         const lon = parseFloat(values[1]);
                         setPositionData(prev => [...prev, { lat, lon, timestamp: Date.now() }]);
+                    } else if (data.startsWith('TEMP1:')) {
+                        const tempValue = parseFloat(data.substring(6));
+                        setTemp1(tempValue);
+                    } else if (data.startsWith('TEMP2:')) {
+                        const tempValue = parseFloat(data.substring(6));
+                        setTemp2(tempValue);
                     }
                 } catch (error) {
                     console.error('Error parsing data:', error);
@@ -745,6 +795,7 @@
                         {/* Speedometer */}
                         <div className="telemetry-card">
                             <div className="card-title">Speed</div>
+                            
                             <div className="speedometer">
                                 <div className="speed-display" key={speed}>
                                     {speed.toFixed(1)}
@@ -753,6 +804,23 @@
                                 <div className="max-speed-indicator">
                                     MAX: <span className="max-speed-value">{maxSpeed.toFixed(1)}</span> MPH
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Temperature Indicators */}
+                    <div className="telemetry-card">
+                        <div className="card-title">Temperature</div>
+                        <div className="temperature-indicators">
+                            <div className="temp-indicator">
+                                <div className="temp-label">Temperature 1</div>
+                                <div className="temp-value">{temp1.toFixed(1)}°C</div>
+                                <div className="temp-conversion">{(temp1 * 9/5 + 32).toFixed(1)}°F</div>
+                            </div>
+                            <div className="temp-indicator">
+                                <div className="temp-label">Temperature 2</div>
+                                <div className="temp-value">{temp2.toFixed(1)}°C</div>
+                                <div className="temp-conversion">{(temp2 * 9/5 + 32).toFixed(1)}°F</div>
                             </div>
                         </div>
                     </div>
