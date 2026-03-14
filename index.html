@@ -7,6 +7,7 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -559,6 +560,220 @@
                 font-size: 4rem;
             }
         }
+
+        /* ── Log Analyzer ─────────────────────────────────────────── */
+        .log-analyzer-section {
+            margin-top: 40px;
+            border-top: 2px solid var(--racing-red);
+            padding-top: 30px;
+        }
+
+        .log-analyzer-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .log-analyzer-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-green) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .log-upload-btn {
+            font-family: 'Orbitron', sans-serif;
+            padding: 10px 24px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: transparent;
+            color: var(--neon-blue);
+            border: 2px solid var(--neon-blue);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+        }
+
+        .log-upload-btn:hover {
+            background: var(--neon-blue);
+            color: var(--carbon-black);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .log-file-info {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.95rem;
+            color: var(--neon-green);
+            letter-spacing: 1px;
+        }
+
+        .log-stats-bar {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            padding: 14px 20px;
+            background: var(--carbon-med);
+            border-left: 3px solid var(--neon-blue);
+        }
+
+        .log-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .log-stat-label {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--racing-yellow);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .log-stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--neon-green);
+        }
+
+        .plot-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 0;
+            flex-wrap: wrap;
+        }
+
+        .plot-tab {
+            font-family: 'Orbitron', sans-serif;
+            padding: 8px 18px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: var(--carbon-med);
+            color: var(--off-white);
+            border: 1px solid var(--steel-gray);
+            border-bottom: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0.6;
+        }
+
+        .plot-tab:hover {
+            opacity: 0.9;
+            background: var(--steel-gray);
+        }
+
+        .plot-tab.active {
+            background: var(--steel-gray);
+            color: var(--racing-yellow);
+            border-color: var(--racing-yellow);
+            opacity: 1;
+        }
+
+        .plot-container {
+            background: var(--carbon-med);
+            border: 1px solid var(--steel-gray);
+            border-top: 2px solid var(--racing-yellow);
+            padding: 20px;
+            position: relative;
+        }
+
+        .plot-canvas-wrap {
+            position: relative;
+            width: 100%;
+        }
+
+        .plot-canvas-wrap canvas {
+            width: 100% !important;
+        }
+
+        .log-map-container {
+            width: 100%;
+            min-height: 420px;
+            background: var(--carbon-dark);
+        }
+
+        .log-empty {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--steel-gray);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.2rem;
+            font-style: italic;
+        }
+
+        .log-empty span {
+            display: block;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            margin-bottom: 12px;
+            opacity: 0.3;
+        }
+
+        .time-range-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .time-range-label {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--racing-yellow);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .time-range-input {
+            background: var(--carbon-dark);
+            border: 1px solid var(--steel-gray);
+            color: var(--off-white);
+            padding: 5px 10px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.9rem;
+            width: 90px;
+        }
+
+        .time-range-input:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+        }
+
+        .time-range-btn {
+            font-family: 'Orbitron', sans-serif;
+            padding: 6px 14px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: transparent;
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .time-range-btn:hover {
+            background: var(--neon-green);
+            color: var(--carbon-black);
+        }
     </style>
 </head>
 <body>
@@ -946,6 +1161,397 @@
         }
 
         ReactDOM.render(<OpenRCCrewChief />, document.getElementById('root'));
+
+
+        // ─── Log Analyzer Component ────────────────────────────────────────────
+
+        const PLOT_TABS = [
+            { id: 'accel',  label: 'Acceleration' },
+            { id: 'gyro',   label: 'Rotation Rates' },
+            { id: 'speed',  label: 'Speed' },
+            { id: 'temp',   label: 'Temperature' },
+            { id: 'pwm',    label: 'PWM Channels' },
+            { id: 'map',    label: 'GPS Track' },
+        ];
+
+        const CHART_COLORS = {
+            x:     '#00D4FF',
+            y:     '#FFD700',
+            z:     '#FF6B35',
+            total: '#00FF41',
+            ch1:   '#E10600',
+            ch2:   '#00D4FF',
+            ch3:   '#FFD700',
+            t1:    '#FF6B35',
+            t2:    '#00FF41',
+        };
+
+        function makeDataset(label, data, colorKey, hidden) {
+            const c = CHART_COLORS[colorKey] || '#ffffff';
+            return {
+                label,
+                data,
+                borderColor: c,
+                backgroundColor: c + '22',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                tension: 0.3,
+                hidden: !!hidden,
+            };
+        }
+
+        function buildChartOptions(yLabel, tMin, tMax, allPoints) {
+            const visibleY = allPoints
+                .filter(pt => pt.x >= tMin && pt.x <= tMax)
+                .map(pt => pt.y);
+            let yMin, yMax;
+            if (visibleY.length > 0) {
+                const rawMin = Math.min(...visibleY);
+                const rawMax = Math.max(...visibleY);
+                const pad = (rawMax - rawMin) * 0.08 || Math.abs(rawMax) * 0.05 || 0.1;
+                yMin = rawMin - pad;
+                yMax = rawMax + pad;
+            }
+            return {
+                responsive: true,
+                animation: false,
+                parsing: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        labels: { color: '#E8E8E8', font: { family: 'Rajdhani', size: 13 }, boxWidth: 14 }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1E1E1E', borderColor: '#2D2D2D', borderWidth: 1,
+                        titleColor: '#FFD700', bodyColor: '#E8E8E8',
+                        titleFont: { family: 'Orbitron', size: 11 }, bodyFont: { family: 'Rajdhani', size: 13 },
+                        callbacks: { title: (items) => `t = ${items[0].parsed.x.toFixed(2)} s` }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear', min: tMin, max: tMax,
+                        ticks: { color: '#E8E8E8', font: { family: 'Rajdhani', size: 11 }, maxTicksLimit: 14, callback: (v) => v.toFixed(1) + 's' },
+                        grid: { color: 'rgba(255,255,255,0.06)' },
+                        title: { display: true, text: 'Time (s)', color: '#FFD700', font: { family: 'Rajdhani', size: 13 } },
+                    },
+                    y: {
+                        type: 'linear', min: yMin, max: yMax,
+                        ticks: { color: '#E8E8E8', font: { family: 'Rajdhani', size: 11 } },
+                        grid: { color: 'rgba(255,255,255,0.06)' },
+                        title: { display: true, text: yLabel, color: '#FFD700', font: { family: 'Rajdhani', size: 13 } },
+                    },
+                },
+            };
+        }
+
+        // (chart options built dynamically in buildChartOptions above)
+
+        function LogChart({ id, datasets, yLabel, tMin, tMax }) {
+            const canvasRef = React.useRef(null);
+            const chartRef  = React.useRef(null);
+
+            React.useEffect(() => {
+                if (!canvasRef.current || datasets.length === 0) return;
+                if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; }
+
+                // All points across visible (non-hidden) datasets for y-range
+                const allPoints = datasets.filter(ds => !ds.hidden).flatMap(ds => ds.data);
+
+                chartRef.current = new Chart(canvasRef.current, {
+                    type: 'line',
+                    data: { datasets },
+                    options: buildChartOptions(yLabel, tMin, tMax, allPoints),
+                });
+                return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
+            }, [datasets, yLabel, tMin, tMax]);
+
+            return (
+                <div className="plot-canvas-wrap">
+                    <canvas ref={canvasRef} height={340}></canvas>
+                </div>
+            );
+        }
+
+        function LogMap({ rows }) {
+            const mapDivRef = React.useRef(null);
+            const mapRef    = React.useRef(null);
+
+            const validRows = rows.filter(r => r.GPSValid === 1 && (r.Latitude !== 0 || r.Longitude !== 0));
+
+            React.useEffect(() => {
+                if (!mapDivRef.current || validRows.length === 0) return;
+
+                if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+
+                const map = L.map(mapDivRef.current).setView(
+                    [validRows[0].Latitude, validRows[0].Longitude], 17
+                );
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors', maxZoom: 19
+                }).addTo(map);
+
+                const coords = validRows.map(r => [r.Latitude, r.Longitude]);
+                L.polyline(coords, { color: '#00FF41', weight: 3, opacity: 0.85 }).addTo(map);
+
+                // Start marker
+                L.circleMarker(coords[0], {
+                    radius: 7, fillColor: '#00FF41', color: '#FFD700',
+                    weight: 2, opacity: 1, fillOpacity: 1
+                }).bindTooltip('Start').addTo(map);
+
+                // End / current marker
+                L.circleMarker(coords[coords.length - 1], {
+                    radius: 7, fillColor: '#E10600', color: '#FFD700',
+                    weight: 2, opacity: 1, fillOpacity: 1
+                }).bindTooltip('End').addTo(map);
+
+                mapRef.current = map;
+                return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
+            }, [validRows.length]);
+
+            if (validRows.length === 0) {
+                return <div className="log-empty"><span>📡</span>No valid GPS data in this log file.</div>;
+            }
+
+            return (
+                <div>
+                    <div style={{ fontFamily:'Rajdhani', fontSize:'0.85rem', color:'var(--neon-green)', marginBottom:'10px', letterSpacing:'1px' }}>
+                        {validRows.length} GPS points &nbsp;|&nbsp;
+                        ▶ <span style={{color:'#00FF41'}}>Start</span> &nbsp;
+                        ■ <span style={{color:'#E10600'}}>End</span>
+                    </div>
+                    <div ref={mapDivRef} className="log-map-container" style={{minHeight:'420px'}}></div>
+                </div>
+            );
+        }
+
+        function LogAnalyzer() {
+            const [rows,        setRows]        = React.useState([]);
+            const [fileName,    setFileName]    = React.useState('');
+            const [activeTab,   setActiveTab]   = React.useState('accel');
+            const [tMin,        setTMin]        = React.useState(0);
+            const [tMax,        setTMax]        = React.useState(Infinity);
+            const [tMinInput,   setTMinInput]   = React.useState('');
+            const [tMaxInput,   setTMaxInput]   = React.useState('');
+            const fileInputRef  = React.useRef(null);
+
+            const parseCSV = (text) => {
+                const lines = text.trim().split('\n').filter(l => l.trim());
+                if (lines.length < 2) return [];
+                const headers = lines[0].split(',').map(h => h.trim());
+                return lines.slice(1).map(line => {
+                    const vals = line.split(',');
+                    const obj = {};
+                    headers.forEach((h, i) => {
+                        const v = vals[i] !== undefined ? vals[i].trim() : '';
+                        obj[h] = isNaN(v) || v === '' ? v : parseFloat(v);
+                    });
+                    return obj;
+                });
+            };
+
+            const handleFile = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setFileName(file.name);
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const parsed = parseCSV(ev.target.result);
+                    if (parsed.length === 0) { alert('Could not parse log file. Make sure it is a CSV with headers.'); return; }
+                    // Normalize timestamp to seconds from start
+                    const t0 = parsed[0].Timestamp;
+                    parsed.forEach(r => { r._t = (r.Timestamp - t0) / 1000; });
+                    // Compute total accel and total gyro
+                    parsed.forEach(r => {
+                        r._accelTotal = Math.sqrt(r.AccelX**2 + r.AccelY**2 + r.AccelZ**2);
+                        r._gyroTotal  = Math.sqrt(r.GyroX**2  + r.GyroY**2  + r.GyroZ**2);
+                    });
+                    setRows(parsed);
+                    const tEnd = parsed[parsed.length - 1]._t;
+                    setTMin(0);
+                    setTMax(tEnd);
+                    setTMinInput('0');
+                    setTMaxInput(tEnd.toFixed(1));
+                    setActiveTab('accel');
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            };
+
+            const applyTimeRange = () => {
+                const lo = parseFloat(tMinInput);
+                const hi = parseFloat(tMaxInput);
+                if (!isNaN(lo)) setTMin(lo);
+                if (!isNaN(hi)) setTMax(hi);
+            };
+
+            const resetTimeRange = () => {
+                if (rows.length === 0) return;
+                const t0 = 0;
+                const tEnd = rows[rows.length - 1]._t;
+                setTMin(t0); setTMax(tEnd);
+                setTMinInput('0'); setTMaxInput(tEnd.toFixed(1));
+            };
+
+            // Build datasets
+            const pt = (r, yKey) => ({ x: r._t, y: r[yKey] });
+
+            const accelDatasets = rows.length ? [
+                makeDataset('X (m/s²)',     rows.map(r => pt(r,'AccelX')),     'x'),
+                makeDataset('Y (m/s²)',     rows.map(r => pt(r,'AccelY')),     'y'),
+                makeDataset('Z (m/s²)',     rows.map(r => pt(r,'AccelZ')),     'z'),
+                makeDataset('Total (m/s²)', rows.map(r => ({ x:r._t, y:r._accelTotal })), 'total'),
+            ] : [];
+
+            const gyroDatasets = rows.length ? [
+                makeDataset('X (rad/s)',    rows.map(r => pt(r,'GyroX')),     'x'),
+                makeDataset('Y (rad/s)',    rows.map(r => pt(r,'GyroY')),     'y'),
+                makeDataset('Z (rad/s)',    rows.map(r => pt(r,'GyroZ')),     'z'),
+                makeDataset('Total (rad/s)',rows.map(r => ({ x:r._t, y:r._gyroTotal })), 'total'),
+            ] : [];
+
+            const speedDatasets = rows.length ? [
+                makeDataset('Speed (km/h)', rows.map(r => pt(r,'Speed')), 'total'),
+            ] : [];
+
+            const tempDatasets = rows.length ? [
+                makeDataset('Temp 1 (°C)', rows.map(r => pt(r,'Temp1')), 't1'),
+                makeDataset('Temp 2 (°C)', rows.map(r => pt(r,'Temp2')), 't2'),
+            ] : [];
+
+            const pwmDatasets = rows.length ? [
+                makeDataset('CH 1', rows.map(r => pt(r,'PWM_Ch1')), 'ch1'),
+                makeDataset('CH 2', rows.map(r => pt(r,'PWM_Ch2')), 'ch2'),
+                makeDataset('CH 3', rows.map(r => pt(r,'PWM_Ch3')), 'ch3'),
+            ] : [];
+
+            // Stats
+            const duration = rows.length ? rows[rows.length-1]._t.toFixed(1) : '—';
+            const maxSpeedLog = rows.length ? Math.max(...rows.map(r => r.Speed)).toFixed(2) : '—';
+            const maxAccel = rows.length ? Math.max(...rows.map(r => r._accelTotal)).toFixed(2) : '—';
+            const gpsPoints = rows.length ? rows.filter(r => r.GPSValid === 1).length : 0;
+
+            return (
+                <div className="log-analyzer-section">
+                    <div className="log-analyzer-header">
+                        <div className="log-analyzer-title">Log Analyzer</div>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".csv,.txt,.log"
+                            style={{ display:'none' }}
+                            onChange={handleFile}
+                        />
+                        <button className="log-upload-btn" onClick={() => fileInputRef.current.click()}>
+                            📂 Load Log File
+                        </button>
+                        {fileName && <span className="log-file-info">▶ {fileName}</span>}
+                    </div>
+
+                    {rows.length === 0 ? (
+                        <div className="log-empty">
+                            <span>📋</span>
+                            Load a CSV log file from Open RC Spotter to view telemetry plots.
+                        </div>
+                    ) : (
+                        <>
+                            {/* Stats bar */}
+                            <div className="log-stats-bar">
+                                <div className="log-stat">
+                                    <div className="log-stat-label">Samples</div>
+                                    <div className="log-stat-value">{rows.length}</div>
+                                </div>
+                                <div className="log-stat">
+                                    <div className="log-stat-label">Duration</div>
+                                    <div className="log-stat-value">{duration} s</div>
+                                </div>
+                                <div className="log-stat">
+                                    <div className="log-stat-label">Max Speed</div>
+                                    <div className="log-stat-value">{maxSpeedLog} km/h</div>
+                                </div>
+                                <div className="log-stat">
+                                    <div className="log-stat-label">Peak Accel</div>
+                                    <div className="log-stat-value">{maxAccel} m/s²</div>
+                                </div>
+                                <div className="log-stat">
+                                    <div className="log-stat-label">GPS Points</div>
+                                    <div className="log-stat-value">{gpsPoints}</div>
+                                </div>
+                            </div>
+
+                            {/* Time range filter */}
+                            <div className="time-range-controls">
+                                <span className="time-range-label">Time Range:</span>
+                                <input
+                                    className="time-range-input"
+                                    type="number"
+                                    value={tMinInput}
+                                    onChange={e => setTMinInput(e.target.value)}
+                                    placeholder="Start (s)"
+                                />
+                                <span style={{color:'var(--off-white)'}}>→</span>
+                                <input
+                                    className="time-range-input"
+                                    type="number"
+                                    value={tMaxInput}
+                                    onChange={e => setTMaxInput(e.target.value)}
+                                    placeholder="End (s)"
+                                />
+                                <button className="time-range-btn" onClick={applyTimeRange}>Apply</button>
+                                <button className="time-range-btn" onClick={resetTimeRange}>Reset</button>
+                            </div>
+
+                            {/* Tabs */}
+                            <div className="plot-tabs">
+                                {PLOT_TABS.map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        className={`plot-tab ${activeTab === tab.id ? 'active' : ''}`}
+                                        onClick={() => setActiveTab(tab.id)}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Plot area */}
+                            <div className="plot-container">
+                                {activeTab === 'accel' && (
+                                    <LogChart id="accel" datasets={accelDatasets} yLabel="Acceleration (m/s²)" tMin={tMin} tMax={tMax} />
+                                )}
+                                {activeTab === 'gyro' && (
+                                    <LogChart id="gyro" datasets={gyroDatasets} yLabel="Rotation Rate (rad/s)" tMin={tMin} tMax={tMax} />
+                                )}
+                                {activeTab === 'speed' && (
+                                    <LogChart id="speed" datasets={speedDatasets} yLabel="Speed (km/h)" tMin={tMin} tMax={tMax} />
+                                )}
+                                {activeTab === 'temp' && (
+                                    <LogChart id="temp" datasets={tempDatasets} yLabel="Temperature (°C)" tMin={tMin} tMax={tMax} />
+                                )}
+                                {activeTab === 'pwm' && (
+                                    <LogChart id="pwm" datasets={pwmDatasets} yLabel="PWM Value" tMin={tMin} tMax={tMax} />
+                                )}
+                                {activeTab === 'map' && (
+                                    <LogMap rows={rows} />
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+            );
+        }
+
+        // Inject Log Analyzer into existing app after render
+        const logRoot = document.createElement('div');
+        logRoot.id = 'log-analyzer-root';
+        document.getElementById('root').appendChild(logRoot);
+        // Wait for React root to mount, then append LogAnalyzer inside the app container
+        // We use a second ReactDOM.render on a sibling div appended to body
+        const laMount = document.createElement('div');
+        laMount.style.cssText = 'max-width:1800px;margin:0 auto;padding:0 20px 40px;position:relative;z-index:2;';
+        document.body.appendChild(laMount);
+        ReactDOM.render(<LogAnalyzer />, laMount);
     </script>
 </body>
 </html>
