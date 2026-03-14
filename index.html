@@ -1200,14 +1200,48 @@
             };
         }
 
-        function buildChartOptions(yLabel, tMin, tMax, allPoints) {
-            const visibleY = allPoints
-                .filter(pt => pt.x >= tMin && pt.x <= tMax)
-                .map(pt => pt.y);
+        // Largest-Triangle-Three-Buckets downsampling
+        // Reduces pts (array of {x,y}) to at most maxPts while preserving visual shape
+        function lttbDownsample(pts, maxPts) {
+            const n = pts.length;
+            if (n <= maxPts) return pts;
+            const out = [pts[0]];
+            const bucketSize = (n - 2) / (maxPts - 2);
+            let a = 0;
+            for (let i = 0; i < maxPts - 2; i++) {
+                const avgStart = Math.floor((i + 1) * bucketSize) + 1;
+                const avgEnd   = Math.min(Math.floor((i + 2) * bucketSize) + 1, n);
+                let avgX = 0, avgY = 0;
+                for (let j = avgStart; j < avgEnd; j++) { avgX += pts[j].x; avgY += pts[j].y; }
+                const cnt = avgEnd - avgStart;
+                avgX /= cnt; avgY /= cnt;
+
+                const rangeStart = Math.floor(i * bucketSize) + 1;
+                const rangeEnd   = Math.min(Math.floor((i + 1) * bucketSize) + 1, n);
+                let maxArea = -1, maxIdx = rangeStart;
+                const ax = pts[a].x, ay = pts[a].y;
+                for (let j = rangeStart; j < rangeEnd; j++) {
+                    const area = Math.abs((ax - avgX) * (pts[j].y - ay) - (ax - pts[j].x) * (avgY - ay));
+                    if (area > maxArea) { maxArea = area; maxIdx = j; }
+                }
+                out.push(pts[maxIdx]);
+                a = maxIdx;
+            }
+            out.push(pts[n - 1]);
+            return out;
+        }
+
+        const MAX_CHART_POINTS = 2000; // per dataset
+
+        function buildChartOptions(yLabel, tMin, tMax, visiblePoints) {
             let yMin, yMax;
-            if (visibleY.length > 0) {
-                const rawMin = Math.min(...visibleY);
-                const rawMax = Math.max(...visibleY);
+            if (visiblePoints.length > 0) {
+                let rawMin = Infinity, rawMax = -Infinity;
+                for (let i = 0; i < visiblePoints.length; i++) {
+                    const y = visiblePoints[i].y;
+                    if (y < rawMin) rawMin = y;
+                    if (y > rawMax) rawMax = y;
+                }
                 const pad = (rawMax - rawMin) * 0.08 || Math.abs(rawMax) * 0.05 || 0.1;
                 yMin = rawMin - pad;
                 yMax = rawMax + pad;
@@ -1225,13 +1259,13 @@
                         backgroundColor: '#1E1E1E', borderColor: '#2D2D2D', borderWidth: 1,
                         titleColor: '#FFD700', bodyColor: '#E8E8E8',
                         titleFont: { family: 'Orbitron', size: 11 }, bodyFont: { family: 'Rajdhani', size: 13 },
-                        callbacks: { title: (items) => `t = ${items[0].parsed.x.toFixed(2)} s` }
+                        callbacks: { title: (items) => `t = ${Number(items[0].parsed.x).toFixed(2)} s` }
                     }
                 },
                 scales: {
                     x: {
                         type: 'linear', min: tMin, max: tMax,
-                        ticks: { color: '#E8E8E8', font: { family: 'Rajdhani', size: 11 }, maxTicksLimit: 14, callback: (v) => v.toFixed(1) + 's' },
+                        ticks: { color: '#E8E8E8', font: { family: 'Rajdhani', size: 11 }, maxTicksLimit: 14, callback: (v) => Number(v).toFixed(1) + 's' },
                         grid: { color: 'rgba(255,255,255,0.06)' },
                         title: { display: true, text: 'Time (s)', color: '#FFD700', font: { family: 'Rajdhani', size: 13 } },
                     },
@@ -1245,8 +1279,6 @@
             };
         }
 
-        // (chart options built dynamically in buildChartOptions above)
-
         function LogChart({ id, datasets, yLabel, tMin, tMax }) {
             const canvasRef = React.useRef(null);
             const chartRef  = React.useRef(null);
@@ -1255,13 +1287,21 @@
                 if (!canvasRef.current || datasets.length === 0) return;
                 if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; }
 
-                // All points across visible (non-hidden) datasets for y-range
-                const allPoints = datasets.filter(ds => !ds.hidden).flatMap(ds => ds.data);
+                // Window to time range then downsample each dataset
+                const windowed = datasets.map(ds => {
+                    const sliced = ds.data.filter(pt => pt.x >= tMin && pt.x <= tMax);
+                    return { ...ds, data: lttbDownsample(sliced, MAX_CHART_POINTS) };
+                });
+
+                // Collect all visible (non-hidden) downsampled points for y-range
+                const visiblePoints = windowed
+                    .filter(ds => !ds.hidden)
+                    .reduce((acc, ds) => { for (let p of ds.data) acc.push(p); return acc; }, []);
 
                 chartRef.current = new Chart(canvasRef.current, {
                     type: 'line',
-                    data: { datasets },
-                    options: buildChartOptions(yLabel, tMin, tMax, allPoints),
+                    data: { datasets: windowed },
+                    options: buildChartOptions(yLabel, tMin, tMax, visiblePoints),
                 });
                 return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
             }, [datasets, yLabel, tMin, tMax]);
