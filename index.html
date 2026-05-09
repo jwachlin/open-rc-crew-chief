@@ -774,6 +774,159 @@
             background: var(--neon-green);
             color: var(--carbon-black);
         }
+
+        /* ── Diagnostics Panel ────────────────────────────────────────────── */
+        .diagnostics-card {
+            background: var(--carbon-med);
+            border: 1px solid var(--steel-gray);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .diagnostics-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--racing-red), var(--racing-yellow), var(--racing-red));
+            animation: shimmer 3s infinite;
+        }
+
+        .diag-ok-banner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            background: rgba(0, 255, 65, 0.08);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            color: var(--neon-green);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .diag-ok-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--neon-green);
+            box-shadow: 0 0 8px var(--neon-green);
+            animation: pulse 2s infinite;
+            flex-shrink: 0;
+        }
+
+        .diag-fault-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .diag-fault-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 16px;
+        }
+
+        .diag-fault-item.error {
+            background: rgba(225, 6, 0, 0.12);
+            border-left: 3px solid var(--racing-red);
+        }
+
+        .diag-fault-item.warning {
+            background: rgba(255, 215, 0, 0.08);
+            border-left: 3px solid var(--racing-yellow);
+        }
+
+        .diag-fault-badge {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 3px 8px;
+            flex-shrink: 0;
+            text-transform: uppercase;
+        }
+
+        .diag-fault-item.error .diag-fault-badge {
+            background: var(--racing-red);
+            color: #fff;
+        }
+
+        .diag-fault-item.warning .diag-fault-badge {
+            background: var(--racing-yellow);
+            color: var(--carbon-black);
+        }
+
+        .diag-fault-label {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .diag-fault-item.error .diag-fault-label {
+            color: #ff6b6b;
+        }
+
+        .diag-fault-item.warning .diag-fault-label {
+            color: var(--racing-yellow);
+        }
+
+        .diag-waiting {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            color: var(--steel-gray);
+            font-style: italic;
+            padding: 10px 4px;
+        }
+
+        .diag-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .diag-summary-pills {
+            display: flex;
+            gap: 8px;
+        }
+
+        .diag-pill {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 4px 12px;
+            border-radius: 2px;
+            text-transform: uppercase;
+        }
+
+        .diag-pill.error-pill {
+            background: rgba(225, 6, 0, 0.2);
+            border: 1px solid var(--racing-red);
+            color: #ff6b6b;
+        }
+
+        .diag-pill.warn-pill {
+            background: rgba(255, 215, 0, 0.15);
+            border: 1px solid var(--racing-yellow);
+            color: var(--racing-yellow);
+        }
+
+        .diag-pill.ok-pill {
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+        }
     </style>
 </head>
 <body>
@@ -792,6 +945,8 @@
             const [temp2, setTemp2] = useState(0);
             const [laps, setLaps] = useState([]);
             const [positionData, setPositionData] = useState([]);
+            const [errors, setErrors] = useState(null);    // null = not yet received
+            const [warnings, setWarnings] = useState(null);
             
             const portRef = useRef(null);
             const readerRef = useRef(null);
@@ -853,6 +1008,8 @@
             // POS:lat,lon (e.g., "POS:37.7749,-122.4194")
             // TEMP1:value (e.g., "TEMP1:85.5")
             // TEMP2:value (e.g., "TEMP2:92.3")
+            // ERRORS:bitmask (e.g., "ERRORS:3")
+            // WARNINGS:bitmask (e.g., "WARNINGS:1")
             const parseSerialData = (data) => {
                 try {
                     if (data.startsWith('ACC:')) {
@@ -882,6 +1039,12 @@
                     } else if (data.startsWith('TEMP2:')) {
                         const tempValue = parseFloat(data.substring(6));
                         setTemp2(tempValue);
+                    } else if (data.startsWith('ERRORS:')) {
+                        const bits = parseInt(data.substring(7), 10);
+                        if (!isNaN(bits)) setErrors(bits);
+                    } else if (data.startsWith('WARNINGS:')) {
+                        const bits = parseInt(data.substring(9), 10);
+                        if (!isNaN(bits)) setWarnings(bits);
                     }
                 } catch (error) {
                     console.error('Error parsing data:', error);
@@ -1023,6 +1186,9 @@
                         </div>
                     </div>
 
+                    {/* Diagnostics Panel */}
+                    <DiagnosticsPanel errors={errors} warnings={warnings} connected={connected} />
+
                     {/* Temperature Indicators */}
                     <div className="telemetry-card">
                         <div className="card-title">Temperature</div>
@@ -1084,6 +1250,101 @@
                             <div id="positionMap"></div>
                         )}
                     </div>
+                </div>
+            );
+        }
+
+        // ── Error / Warning bit definitions (must match OpenRCSpotter.h) ──────────
+        // To add a new fault: define the bit here and add an entry to the
+        // ERROR_DEFS or WARN_DEFS tables below. No other changes required.
+        const ERR_PWM_CH1       = (1 << 0);
+        const ERR_PWM_CH2       = (1 << 1);
+        const ERR_PWM_CH3       = (1 << 2);
+        const ERR_BATTERY       = (1 << 3);
+        const ERR_TEMP_SENSOR   = (1 << 4);
+        const ERR_ACCEL         = (1 << 5);
+        const ERR_GYRO          = (1 << 6);
+        const ERR_LOGGING       = (1 << 7);
+        const ERR_TEMP_CRITICAL = (1 << 8);
+
+        const WARN_NO_GPS       = (1 << 0);
+        const WARN_TEMP_HIGH    = (1 << 1);
+
+        const ERROR_DEFS = [
+            { bit: ERR_PWM_CH1,       label: 'PWM Ch1 Signal Lost',           icon: '📡' },
+            { bit: ERR_PWM_CH2,       label: 'PWM Ch2 Signal Lost',           icon: '📡' },
+            { bit: ERR_PWM_CH3,       label: 'PWM Ch3 Signal Lost',           icon: '📡' },
+            { bit: ERR_BATTERY,       label: 'Battery Voltage Out of Range',  icon: '🔋' },
+            { bit: ERR_TEMP_SENSOR,   label: 'Temperature Sensor Invalid',    icon: '🌡' },
+            { bit: ERR_ACCEL,         label: 'Accelerometer Fault',           icon: '⚡' },
+            { bit: ERR_GYRO,          label: 'Gyroscope Fault',               icon: '⚡' },
+            { bit: ERR_LOGGING,       label: 'SD Card Logging Failure',       icon: '💾' },
+            { bit: ERR_TEMP_CRITICAL, label: 'Critical Temperature  > 80 °C', icon: '🔥' },
+        ];
+
+        const WARN_DEFS = [
+            { bit: WARN_NO_GPS,    label: 'No GPS Fix',               icon: '🛰' },
+            { bit: WARN_TEMP_HIGH, label: 'High Temperature  > 60 °C', icon: '🌡' },
+        ];
+
+        function DiagnosticsPanel({ errors, warnings, connected }) {
+            // Build lists of active faults
+            const activeErrors   = ERROR_DEFS.filter(d => errors !== null && (errors   & d.bit));
+            const activeWarnings = WARN_DEFS.filter(d  => warnings !== null && (warnings & d.bit));
+            const totalFaults    = activeErrors.length + activeWarnings.length;
+            const allOk          = errors !== null && warnings !== null && totalFaults === 0;
+
+            return (
+                <div className="diagnostics-card">
+                    <div className="diag-header-row">
+                        <div className="card-title" style={{marginBottom:0}}>System Diagnostics</div>
+                        <div className="diag-summary-pills">
+                            {errors === null ? (
+                                <span className="diag-pill ok-pill">AWAITING DATA</span>
+                            ) : allOk ? (
+                                <span className="diag-pill ok-pill">ALL NOMINAL</span>
+                            ) : (
+                                <>
+                                    {activeErrors.length > 0 && (
+                                        <span className="diag-pill error-pill">
+                                            {activeErrors.length} ERROR{activeErrors.length !== 1 ? 'S' : ''}
+                                        </span>
+                                    )}
+                                    {activeWarnings.length > 0 && (
+                                        <span className="diag-pill warn-pill">
+                                            {activeWarnings.length} WARNING{activeWarnings.length !== 1 ? 'S' : ''}
+                                        </span>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {!connected ? (
+                        <div className="diag-waiting">Connect a device to view live diagnostics.</div>
+                    ) : errors === null ? (
+                        <div className="diag-waiting">Waiting for first diagnostic packet…</div>
+                    ) : allOk ? (
+                        <div className="diag-ok-banner">
+                            <div className="diag-ok-dot"></div>
+                            All systems nominal — no faults detected
+                        </div>
+                    ) : (
+                        <div className="diag-fault-list">
+                            {activeErrors.map(d => (
+                                <div key={d.bit} className="diag-fault-item error">
+                                    <span className="diag-fault-badge">Error</span>
+                                    <span className="diag-fault-label">{d.icon} {d.label}</span>
+                                </div>
+                            ))}
+                            {activeWarnings.map(d => (
+                                <div key={d.bit} className="diag-fault-item warning">
+                                    <span className="diag-fault-badge">Warn</span>
+                                    <span className="diag-fault-label">{d.icon} {d.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             );
         }
