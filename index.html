@@ -995,7 +995,7 @@
                         const values = data.substring(4).split(',');
                         const lat = parseFloat(values[0]);
                         const lon = parseFloat(values[1]);
-                        setPositionData(prev => [...prev, { lat, lon, timestamp: Date.now() }]);
+                        if (!isNaN(lat) && !isNaN(lon)) setPositionData(prev => [...prev, { lat, lon, timestamp: Date.now() }]);
                     } else if (data.startsWith('TEMP1:')) {
                         const tempValue = parseFloat(data.substring(6));
                         setTemp1(tempValue);
@@ -1325,11 +1325,8 @@
             // Update rotation whenever roll/pitch props change
             useEffect(() => {
                 if (carRef.current) {
-                    // Note: Depending on your exact sensor orientation, you may need to invert these signs
-                    // Assuming Pitch: Nose up is positive (Rotation around X axis)
-                    // Assuming Roll: Right side down is positive (Rotation around Z axis)
                     carRef.current.rotation.x = -pitch * (Math.PI / 180);
-                    carRef.current.rotation.z = -roll * (Math.PI / 180);
+                    carRef.current.rotation.z = roll * (Math.PI / 180);
                 }
             }, [roll, pitch]);
 
